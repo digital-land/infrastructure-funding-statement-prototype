@@ -28,10 +28,20 @@ const utilities = {
   },
   groupCsvs (data) {
     data.grouped = data.agreement.map(agreementRow => {
-      agreementRow.contributions = data.contributions.filter(contributionRow => agreementRow['developer-agreement'] === contributionRow['developer-agreement'])
+      agreementRow.contributions = data.contributions.filter(contributionRow => agreementRow['developer-agreement'] === contributionRow['developer-agreement']).map(function (contribution) {
+        // Give a contribution amount, units a value of 0 if it's empty
+        contribution.amount = contribution.amount.length ? contribution.amount : 0
+        contribution.units = contribution.units.length ? contribution.units : 0
+        return contribution
+      })
 
       agreementRow.contributions.map(contributionRow => {
-        contributionRow.transactions = data.transactions.filter(transactionRow => contributionRow['developer-agreement-contribution'] === transactionRow['developer-agreement-contribution'])
+        contributionRow.transactions = data.transactions.filter(transactionRow => contributionRow['developer-agreement-contribution'] === transactionRow['developer-agreement-contribution']).map(function (transaction) {
+          // Give a transaction amount, units a value of 0 if it's empty
+          transaction.amount = transaction.amount.length ? transaction.amount : 0
+          transaction.units = transaction.units.length ? transaction.units : 0
+          return transaction
+        })
         return contributionRow
       })
 

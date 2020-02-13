@@ -327,73 +327,33 @@ const calculations = {
     let s1061Sum = 0
 
     // For every S106 agreement in developer-agreement_*.csv
-    s106.forEach(item => {
-      const startDate = new Date(item['start-date'])
-      // When the start date is in the current reporting year
+    s106.forEach(agreement => {
+      const startDate = new Date(agreement['start-date'])
+      // If the agreement was within the reported year
       if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
-        // Add together the amount of all of the contributions to be provided
-        item.contributions.forEach(contribution => {
-          s1061Sum = parseInt(s1061Sum) + parseInt(contribution.amount)
+        agreement.contributions.forEach(contribution => {
+          // Add all of the contributions together
+          s1061Sum = parseFloat(s1061Sum) + parseFloat(contribution.amount)
         })
       }
     })
 
     json.calculations.push({
       value: s1061Sum,
-      explanation: `The total amount of money to be provided under any planning obligations which were entered between ${reportingYearStart} and ${reportingYearEnd}`,
-      legislation: 'Schedule 2, Section 3, bullet point (a)',
-      type: 's106'
-    })
-
-    // S106 2, 3, 4
-    let s1062Purposes = []
-    // For every S106 agreement in developer-agreement_*.csv
-    s106.forEach(item => {
-      // List all contribution purposes (should swap for actual register, but this will include mispelt stuff)
-      item.contributions.forEach(contribution => {
-        s1062Purposes.push(contribution['contribution-purpose'])
-      })
-    })
-
-    s1062Purposes = [...new Set(s1062Purposes)].map(key => ({
-      key,
-      units: 0
-    }))
-
-    // For every S106 agreement in developer-agreement_*.csv
-    s106.forEach(item => {
-      const startDate = new Date(item['start-date'])
-      // If the agreement was entered into in the reporting year
-      if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
-        item.contributions.forEach(contribution => {
-          if (contribution.units.length) {
-            // Add the unit amounts to each corresponding purpose
-            s1062Purposes.map(purpose => {
-              if (purpose.key === contribution['contribution-purpose']) {
-                purpose.units = parseInt(purpose.units) + parseInt(contribution.units)
-              }
-            })
-          }
-        })
-      }
-    })
-
-    json.calculations.push({
-      value: s1062Purposes,
-      explanation: 'Summary details of any non-monetary contributions to be provided under planning obligations which were entered into during the reported year',
-      legislation: 'Schedule 2, Section 3, bullet point d, point i, ii',
+      explanation: `The total amount of money to be provided which was agreed between ${reportingYearStart} and ${reportingYearEnd}`,
+      legislation: 'Schedule 2, Section 3, bullet point a',
       type: 's106'
     })
 
     // S106 5
     let s1065Sum = 0
-    s106.forEach(item => {
-      item.contributions.forEach(contribution => {
+    s106.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
         contribution.transactions.forEach(transaction => {
           const startDate = new Date(transaction['start-date'])
           if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
-            if (transaction['contribution-funding-stage'] === 'received') {
-              s1065Sum = parseInt(s1065Sum) + parseInt(transaction.amount)
+            if (transaction['contribution-funding-status'] === 'received') {
+              s1065Sum = parseFloat(s1065Sum) + parseFloat(transaction.amount)
             }
           }
         })
@@ -410,16 +370,18 @@ const calculations = {
     // S106 6
     let s1066Sum = 0
 
-    s106.forEach(item => {
-      item.contributions.forEach(contribution => {
+    s106.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
         contribution.transactions.forEach(transaction => {
           const startDate = new Date(transaction['start-date'])
           if (startDate < reportingYearStart) {
-            if (transaction['contribution-funding-stage'] === 'received') {
-              s1066Sum = parseInt(s1066Sum) + parseInt(transaction.amount)
+            // Add together all the money received by the authority prior to this reporting year
+            if (transaction['contribution-funding-status'] === 'received') {
+              s1066Sum = parseFloat(s1066Sum) + parseFloat(transaction.amount)
             }
-            if (transaction['contribution-funding-stage'] === 'allocated') {
-              s1066Sum = parseInt(s1066Sum) - parseInt(transaction.amount)
+            // And take away anything allocated
+            if (transaction['contribution-funding-status'] === 'allocated') {
+              s1066Sum = parseFloat(s1066Sum) - parseFloat(transaction.amount)
             }
           }
         })
@@ -433,23 +395,63 @@ const calculations = {
       type: 's106'
     })
 
+    // S106 2, 3, 4
+    let s1062Purposes = []
+    // For every S106 agreement in developer-agreement_*.csv
+    s106.forEach(agreement => {
+      // List all contribution purposes (should swap for actual register, but this will include mispelt stuff)
+      agreement.contributions.forEach(contribution => {
+        s1062Purposes.push(contribution['contribution-purpose'])
+      })
+    })
+
+    s1062Purposes = [...new Set(s1062Purposes)].map(key => ({
+      key,
+      units: 0
+    }))
+
+    // For every S106 agreement in developer-agreement_*.csv
+    s106.forEach(agreement => {
+      const startDate = new Date(agreement['start-date'])
+      // If the agreement was entered into in the reporting year
+      if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
+        agreement.contributions.forEach(contribution => {
+          if (contribution.units.length) {
+            // Add the unit amounts to each corresponding purpose
+            s1062Purposes.map(purpose => {
+              if (purpose.key === contribution['contribution-purpose']) {
+                purpose.units = parseFloat(purpose.units) + parseFloat(contribution.units)
+              }
+            })
+          }
+        })
+      }
+    })
+
+    json.calculations.push({
+      value: s1062Purposes,
+      explanation: 'Summary details of any non-monetary contributions to be provided under planning obligations which were entered into during the reported year',
+      legislation: 'Schedule 2, Section 3, bullet point d, point i, ii',
+      type: 's106'
+    })
+
     // S106 7
     let s1067Sum = 0
     // For every S106 agreement in developer-agreement_*.csv
-    s106.forEach(item => {
+    s106.forEach(agreement => {
       // And for every contribution
-      item.contributions.forEach(contribution => {
+      agreement.contributions.forEach(contribution => {
         // And for every transaction
         contribution.transactions.forEach(transaction => {
           const startDate = new Date(transaction['start-date'])
           // If the transaction falls within the current reporting year
           if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
             // Add together all of the allocated money
-            if (transaction['contribution-funding-stage'] === 'allocated') {
+            if (transaction['contribution-funding-status'] === 'allocated') {
               s1067Sum = parseFloat(s1067Sum) + parseFloat(transaction.amount)
             }
             // And remove all of the spent money
-            if (transaction['contribution-funding-stage'] === 'spent') {
+            if (transaction['contribution-funding-status'] === 'spent') {
               s1067Sum = parseFloat(s1067Sum) - parseFloat(transaction.amount)
             }
           }
@@ -459,17 +461,41 @@ const calculations = {
 
     json.calculations.push({
       value: s1067Sum,
-      explanation: `The total amount of money (received under any planning obligations) which was allocated but not spent between ${reportingYearStart} and ${reportingYearEnd}`,
+      explanation: `The total amount of money which was allocated but not spent between ${reportingYearStart} and ${reportingYearEnd}`,
       legislation: 'Schedule 2, Section 3, bullet point e',
+      type: 's106'
+    })
+
+    // S106 10
+    /* TODO: Check if this is only in the current reporting year */
+    let s10610Sum = 0
+    // For every S106 agreement in developer-agreement_*.csv
+    s106.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
+        // For every transaction
+        contribution.transactions.forEach(transaction => {
+          // If it's been spent
+          if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
+            // Add it together
+            s10610Sum = parseFloat(s10610Sum) + parseFloat(transaction['amount'])
+          }
+        })
+      })
+    })
+
+    json.calculations.push({
+      value: s10610Sum,
+      explanation: 'The total amount of money which was spent by the authority',
+      legislation: 'Schedule 2, Section 3, bullet point f',
       type: 's106'
     })
 
     // S106 8
     let s1068Purposes = []
     // For every S106 agreement in developer-agreement_*.csv
-    s106.forEach(item => {
+    s106.forEach(agreement => {
       // List all contributions (should swap for actual register, but this will include mispelt stuff)
-      item.contributions.forEach(contribution => {
+      agreement.contributions.forEach(contribution => {
         s1068Purposes.push(contribution['contribution-purpose'])
       })
     })
@@ -480,8 +506,8 @@ const calculations = {
     }))
 
     // For every S106 agreement in developer-agreement_*.csv
-    s106.forEach(item => {
-      item.contributions.forEach(contribution => {
+    s106.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
         contribution.transactions.forEach(transaction => {
           // For every allocated transaction
           const startDate = new Date(transaction['start-date'])
@@ -490,11 +516,11 @@ const calculations = {
             s1068Purposes.map(purpose => {
               // Add it together in the purpose key
               if (purpose.key === contribution['contribution-purpose']) {
-                if (transaction['contribution-funding-stage'].toLowerCase() === 'allocated') {
-                  purpose.amount = parseInt(purpose.amount) + parseInt(transaction.amount)
+                if (transaction['contribution-funding-status'].toLowerCase() === 'allocated') {
+                  purpose.amount = parseFloat(purpose.amount) + parseFloat(transaction.amount)
                 }
-                if (transaction['contribution-funding-stage'].toLowerCase() === 'spent') {
-                  purpose.amount = parseInt(purpose.amount) - parseInt(transaction.amount)
+                if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
+                  purpose.amount = parseFloat(purpose.amount) - parseFloat(transaction.amount)
                 }
               }
               return purpose
@@ -506,47 +532,17 @@ const calculations = {
 
     json.calculations.push({
       value: s1068Purposes,
-      explanation: 'In relation to money (received under planning obligations) which was allocated by the authority but not spent during the reported year, summary details of the items of infrastructure on which the money has been allocated, and the amount of money allocated to each item',
+      explanation: 'In relation to money which was allocated by the authority but not spent during the reported year, summary details of the items of infrastructure on which the money has been allocated, and the amount of money allocated to each item',
       legislation: 'Schedule 2, Section 3, bullet point g',
-      type: 's106'
-    })
-
-    // S106 9
-    /* This is for longer term maintenance, no data provided */
-
-    // S106 10
-    let s10610Sum = 0
-    // For every S106 agreement in developer-agreement_*.csv
-    s106.forEach(item => {
-      item.contributions.forEach(contribution => {
-        // For every transaction
-        contribution.transactions.forEach(transaction => {
-          // If it's been spent
-          if (transaction['contribution-funding-stage'].toLowerCase() === 'spent') {
-            // const startDate = new Date(transaction['start-date'])
-            // In the current reporting year
-            // if (startDate >= reportingYearStart && startDate <= reportingYearEnd) { // to check
-            // Add it together
-            s10610Sum = parseInt(s10610Sum) + parseInt(transaction['amount'])
-            // }
-          }
-        })
-      })
-    })
-
-    json.calculations.push({
-      value: s10610Sum,
-      explanation: 'The total amount of money (received under any planning obligations) which was spent by the authority',
-      legislation: 'Schedule 2, Section 3, bullet point f',
       type: 's106'
     })
 
     // S106 11, 12, 13
     let s10611Purposes = []
     // For every S106 agreement in developer-agreement_*.csv
-    s106.forEach(item => {
+    s106.forEach(agreement => {
       // List all contributions (should swap for actual register, but this will include mispelt stuff)
-      item.contributions.forEach(contribution => {
+      agreement.contributions.forEach(contribution => {
         s10611Purposes.push(contribution['contribution-purpose'])
       })
     })
@@ -557,18 +553,18 @@ const calculations = {
     }))
 
     // For every S106 agreement in developer-agreement_*.csv
-    s106.forEach(item => {
-      item.contributions.forEach(contribution => {
+    s106.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
         contribution.transactions.forEach(transaction => {
           // For every spent transaction
-          if (transaction['contribution-funding-stage'].toLowerCase() === 'spent') {
+          if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
             const startDate = new Date(transaction['start-date'])
             // Within the current repoting year
             if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
               s10611Purposes.map(purpose => {
                 // Add it together in the purpose key
                 if (purpose.key === contribution['contribution-purpose']) {
-                  purpose.amount = parseInt(purpose.amount) + parseInt(transaction.amount)
+                  purpose.amount = parseFloat(purpose.amount) + parseFloat(transaction.amount)
                 }
                 return purpose
               })
@@ -582,6 +578,36 @@ const calculations = {
       value: s10611Purposes,
       explanation: 'The items of infrastructure on which that money (received under planning obligations) was spent, and the amount spent on each item',
       legislation: 'Schedule 2, Section 3, bullet point h, point i, ii, iii',
+      type: 's106'
+    })
+
+    // S106 9
+    /*
+      This figure isn't conclusive and only satisfies part of the legislation:
+      "the total amount of money (received under any planning obligations) during any year
+      which was retained at the end of the reported year"
+    */
+    var s1069Sum = 0
+    // For every S106 agreement in developer-agreement_*.csv
+    s106.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
+        contribution.transactions.forEach(transaction => {
+          if (transaction['contribution-funding-status'].toLowerCase() === 'received') {
+            s1069Sum = parseFloat(s1069Sum) + parseFloat(transaction.amount)
+            console.log('adding ', transaction.amount)
+          }
+          if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
+            s1069Sum = parseFloat(s1069Sum) - parseFloat(transaction.amount)
+            console.log('Subtract ', transaction.amount)
+          }
+        })
+      })
+    })
+
+    json.calculations.push({
+      value: s1069Sum,
+      explanation: 'The total amount of money during any year which was retained at the end of the reported year',
+      legislation: 'Schedule 2, Section 3, bullet point i',
       type: 's106'
     })
 
