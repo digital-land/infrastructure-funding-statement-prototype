@@ -594,11 +594,9 @@ const calculations = {
         contribution.transactions.forEach(transaction => {
           if (transaction['contribution-funding-status'].toLowerCase() === 'received') {
             s1069Sum = parseFloat(s1069Sum) + parseFloat(transaction.amount)
-            console.log('adding ', transaction.amount)
           }
           if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
             s1069Sum = parseFloat(s1069Sum) - parseFloat(transaction.amount)
-            console.log('Subtract ', transaction.amount)
           }
         })
       })
