@@ -1,6 +1,6 @@
 const fs = require('fs')
 const csv = require('csvtojson')
-const { Document, Packer, Paragraph, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType } = require('docx')
+const { Document, Packer, Paragraph, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType, TableLayoutType } = require('docx')
 
 const utilities = {
   intToMoney (int) {
@@ -51,16 +51,19 @@ const utilities = {
       tableHeader: true,
       children: [
         new TableCell({
-          width: { size: 4535, type: WidthType.DXA },
-          children: [new Paragraph('Value')]
+          children: [new Paragraph('Value')],
+          size: 33,
+          type: WidthType.PERCENTAGE
         }),
         new TableCell({
-          width: { size: 4535, type: WidthType.DXA },
-          children: [new Paragraph('Explanation')]
+          children: [new Paragraph('Explanation')],
+          size: 33,
+          type: WidthType.PERCENTAGE
         }),
         new TableCell({
-          width: { size: 4535, type: WidthType.DXA },
-          children: [new Paragraph('Legislation')]
+          children: [new Paragraph('Legislation')],
+          size: 33,
+          type: WidthType.PERCENTAGE
         })
       ]
     })]
@@ -68,15 +71,12 @@ const utilities = {
     const rows = calculations.filter(item => item.type === type).map(calculation => new TableRow({
       children: [
         new TableCell({
-          width: { size: 4535, type: WidthType.DXA },
           children: [new Paragraph(utilities.intToMoney(calculation.value))]
         }),
         new TableCell({
-          width: { size: 4535, type: WidthType.DXA },
           children: [new Paragraph(calculation.explanation)]
         }),
         new TableCell({
-          width: { size: 4535, type: WidthType.DXA },
           children: [new Paragraph(calculation.legislation)]
         })
       ]
@@ -87,6 +87,7 @@ const utilities = {
         size: 4535,
         type: WidthType.DXA
       },
+      layout: TableLayoutType.FIXED,
       rows: heading.concat(rows)
     })
   },

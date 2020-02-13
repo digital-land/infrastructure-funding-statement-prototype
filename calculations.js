@@ -8,7 +8,7 @@ const calculations = {
         return row['developer-agreement-classification'].toLowerCase() === 'cil'
       }
       return row['developer-agreement-type'].toLowerCase() === 'cil'
-    })
+    }).filter(row => !row['end-date'].length)
 
     // CIL 1
     let cil1Sum = 0
@@ -20,7 +20,7 @@ const calculations = {
       if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
         agreement.contributions.forEach(contribution => {
           // Add the agreement contribution amounts
-          cil1Sum = parseInt(cil1Sum) + parseInt(contribution.amount)
+          cil1Sum = parseFloat(cil1Sum) + parseFloat(contribution.amount)
         })
       }
     })
@@ -43,7 +43,7 @@ const calculations = {
           // If the transaction was received within the reporting year
           if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
             if (transaction['contribution-funding-status'] === 'received') {
-              cil2Sum = parseInt(cil2Sum) + parseInt(transaction.amount)
+              cil2Sum = parseFloat(cil2Sum) + parseFloat(transaction.amount)
             }
           }
         })
@@ -52,42 +52,29 @@ const calculations = {
 
     json.calculations.push({
       value: cil2Sum,
-      explanation: `The total amount of CIL receipts between ${reportingYearStart} and ${reportingYearEnd}`,
-      legislation: 'Schedule 2, Section 1, bullet point a',
+      explanation: `The total amount of CIL received between ${reportingYearStart} and ${reportingYearEnd}`,
+      legislation: 'Schedule 2, Section 1, bullet point b',
       type: 'cil'
     })
 
-    /* TODO: CIL 3 */
-
-    // CIL 4
     let cil4Sum = 0
 
     // For every CIL agreement in developer-agreeement_*.csv
     cil.forEach(agreement => {
       agreement.contributions.forEach(contribution => {
         contribution.transactions.forEach(transaction => {
-          if (transaction['contribution-funding-status'] === 'received') {
-
-          }
-        })
-      })
-    })
-
-    // For every CIL agreement in developer-agreeement_*.csv
-    cil.forEach(item => {
-      item.contributions.forEach(contribution => {
-        contribution.transactions.forEach(transaction => {
-          const startDate = new Date(item['start-date'])
+          const startDate = new Date(transaction['start-date'])
           // If the transaction is before the reporting year
           if (startDate < reportingYearStart) {
-            // Add up all the received money
+            // Add all of the received amounts together
             if (transaction['contribution-funding-status'] === 'received') {
-              cil4Sum = parseInt(cil4Sum) + parseInt(transaction.amount)
+              cil4Sum = parseFloat(cil4Sum) + parseFloat(transaction['amount'])
             }
-          }
-          // Take away all of the allocated money
-          if (transaction['contribution-funding-status'] === 'allocated') {
-            cil4Sum = parseInt(cil4Sum) - parseInt(transaction.amount)
+            // Subtract all of the allocated amounts
+            if (transaction['contribution-funding-status'] === 'allocated') {
+              /* TODO: Check if the allocation removal includes the current year, rather than only BEFORE */
+              cil4Sum = parseFloat(cil4Sum) - parseFloat(transaction['amount'])
+            }
           }
         })
       })
@@ -95,7 +82,7 @@ const calculations = {
 
     json.calculations.push({
       value: cil4Sum,
-      explanation: `The total amount of CIL receipts before ${reportingYearStart} but which have not been allocated.`,
+      explanation: `The total amount of CIL receipts before ${reportingYearStart} but which was not allocated before ${reportingYearStart}.`,
       legislation: 'Schedule 2, Section 1, bullet point c',
       type: 'cil'
     })
@@ -105,21 +92,28 @@ const calculations = {
     let cil5Allocated = 0
 
     // For every CIL agreement in developer-agreeement_*.csv
-    cil.forEach(item => {
-      item.contributions.forEach(contribution => {
-        contribution.transactions.forEach(transaction => {
-          const startDate = new Date(item['start-date'])
-          if (startDate < reportingYearStart) {
-            if (transaction['contribution-funding-status'] === 'received') {
-              cil5Received = parseInt(cil5Received) + parseInt(transaction.amount)
-            }
+    cil.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
+        // If a contributions is both received, and allocated
+        const isReceived = contribution.transactions.find(transaction => transaction['contribution-funding-status'] === 'received') || false
+        const isAllocated = contribution.transactions.find(transaction => transaction['contribution-funding-status'] === 'allocated') || false
+
+        if (isReceived && isAllocated) {
+          const receivedStartDate = new Date(isReceived['start-date'])
+          const allocatedStartDate = new Date(isAllocated['start-date'])
+
+          // And the receipt was before the reporting year start
+          if (receivedStartDate < reportingYearStart) {
+            // Add it together
+            cil5Received = parseFloat(cil5Received) + parseFloat(isReceived.amount)
           }
-          if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
-            if (transaction['contribution-funding-status'] === 'allocated') {
-              cil5Allocated = parseInt(cil5Allocated) - parseInt(transaction.amount)
-            }
+
+          // And the allocation was within the reporting year
+          if (allocatedStartDate >= reportingYearStart && allocatedStartDate <= reportingYearEnd) {
+            // Add it all together
+            cil5Allocated = parseFloat(cil5Allocated) + parseFloat(isAllocated.amount)
           }
-        })
+        }
       })
     })
 
@@ -128,43 +122,8 @@ const calculations = {
         received: cil5Received,
         allocated: cil5Allocated
       },
-      explanation: `This is the amount of CIL we collected before ${reportingYearStart} that has been allocated for spending in this year.`,
+      explanation: `This is the amount of CIL received before ${reportingYearStart}, and how much of that was allocated between ${reportingYearStart} and ${reportingYearEnd}.`,
       legislation: 'Schedule 2, Section 1, bullet point d',
-      type: 'cil'
-    })
-
-    // CIL 6 (double check)
-    let cil6Sum = 0
-    let cilTotalCollected = 0
-
-    // For every CIL agreement in developer-agreeement_*.csv
-    cil.forEach(item => {
-      item.contributions.forEach(contribution => {
-        contribution.transactions.forEach(transaction => {
-          if (transaction['contribution-funding-status'] === 'received') {
-            cilTotalCollected = parseInt(cilTotalCollected) + transaction.amount
-          }
-
-          const startDate = new Date(item['start-date'])
-          if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
-            if (transaction['contribution-funding-status'] === 'allocated') {
-              cil6Sum = parseInt(cil6Sum) + parseInt(transaction.amount)
-            }
-            if (transaction['contribution-funding-status'] === 'spent') {
-              cil6Sum = parseInt(cil6Sum) - parseInt(transaction.amount)
-            }
-          }
-        })
-      })
-    })
-
-    json.calculations.push({
-      value: {
-        sum: cil6Sum,
-        total: cilTotalCollected
-      },
-      explanation: '',
-      legislation: '',
       type: 'cil'
     })
 
@@ -172,11 +131,16 @@ const calculations = {
     let cil7Sum = 0
 
     // For every CIL agreement in developer-agreeement_*.csv
-    cil.forEach(item => {
-      item.contributions.forEach(contribution => {
+    cil.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
         contribution.transactions.forEach(transaction => {
-          if (transaction['contribution-funding-status'] === 'spent') {
-            cil7Sum = parseInt(cil7Sum) - parseInt(transaction.amount)
+          // For every contribution transaction within the reporting year
+          const startDate = new Date(transaction['start-date'])
+          if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
+            // That has been spent, add it together
+            if (transaction['contribution-funding-status'] === 'spent') {
+              cil7Sum = parseFloat(cil7Sum) + parseFloat(transaction.amount)
+            }
           }
         })
       })
@@ -185,78 +149,167 @@ const calculations = {
     json.calculations.push({
       value: cil7Sum,
       explanation: `This is the total amount of CIL we have spent between ${reportingYearStart} and ${reportingYearEnd}`,
-      legislation: 'Schedule 1(e)',
+      legislation: 'Schedule 2, Section 1, bullet point e',
       type: 'cil'
     })
 
-    // CIL 8
-    const cil8Sum = 0
+    // CIL 6
+    let cil6Sum = 0
 
     // For every CIL agreement in developer-agreeement_*.csv
-    cil.forEach(item => {
-
+    cil.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
+        contribution.transactions.forEach(transaction => {
+          const startDate = new Date(transaction['start-date'])
+          // If the transaction is before the reporting year
+          if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
+            // Add all of the received amounts together
+            if (transaction['contribution-funding-status'] === 'allocated') {
+              cil6Sum = parseFloat(cil6Sum) + parseFloat(transaction['amount'])
+            }
+            // Subtract all of the spent amounts
+            if (transaction['contribution-funding-status'] === 'spent') {
+              /* TODO: Check if the allocation removal includes the current year, rather than only BEFORE */
+              cil6Sum = parseFloat(cil6Sum) - parseFloat(transaction['amount'])
+            }
+          }
+        })
+      })
     })
 
     json.calculations.push({
-      value: cil8Sum,
-      explanation: '',
-      legislation: '',
+      value: cil6Sum,
+      explanation: `The total amount of CIL received at any time, which was allocated but not spent between ${reportingYearStart} and ${reportingYearEnd}`,
+      legislation: 'Schedule 2, Section 1, bullet point f',
       type: 'cil'
     })
 
-    // CIL 9
-    const cil9Sum = 0
+    // CIL 8, 9, 10
+    /*
+      NOTE: We can't break down the infrastructure spend, as we don't know what it is.
+      We can split them up into purposes, and then the LPA can split it further.
+    */
+    let cilPurposes = []
+    // For every CIL agreement in developer-agreement_*.csv
+    cil.forEach(agreement => {
+      // List all contribution purposes (should swap for actual register, but this will include mispelt stuff)
+      agreement.contributions.forEach(contribution => {
+        cilPurposes.push(contribution['contribution-purpose'])
+      })
+    })
 
-    // For every CIL agreement in developer-agreeement_*.csv
-    cil.forEach(item => {
+    cilPurposes = [...new Set(cilPurposes)].map(key => ({
+      key,
+      amount: 0
+    }))
 
+    // For every S106 agreement in developer-agreement_*.csv
+    cil.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
+        contribution.transactions.forEach(transaction => {
+          // For every spent transaction
+          if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
+            const startDate = new Date(transaction['start-date'])
+            // Within the current repoting year
+            if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
+              cilPurposes.map(purpose => {
+                // Add it together in the purpose key
+                if (purpose.key === contribution['contribution-purpose']) {
+                  purpose.amount = parseFloat(purpose.amount) + parseFloat(transaction.amount)
+                }
+                return purpose
+              })
+            }
+          }
+        })
+      })
     })
 
     json.calculations.push({
-      value: cil9Sum,
-      explanation: '',
-      legislation: '',
+      value: cilPurposes,
+      explanation: `These are the categories of reported CIL spending within ${reportingYearStart} and ${reportingYearEnd}. These need to be broken down further into infrastructure spend.`,
+      legislation: 'Schedule 2, Section 1, bullet point g, point i, ii',
       type: 'cil'
     })
 
     // CIL 10
-    let cil10Sum = 0
+    let cil10Received = 0
     let cil10Spent = 0
 
-    // (iii)the amount of CIL spent on administrative expenses
-    // pursuant to regulation 61, and that amount expressed as a percentage
-    // of CIL collected in that year in accordance with that regulation;
-
     // For every CIL agreement in developer-agreeement_*.csv
-    cil.forEach(item => {
-      const startDate = new Date(item['start-date'])
-      // When the start date is in the current reporting year
-      if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
-        // Add together the amount of all of the contributions to be provided
-        item.contributions.forEach(contribution => {
-          contribution.transactions.forEach(transaction => {
-            cil10Sum = parseInt(cil10Sum) + transaction.amount
-          })
-          if (contribution['contribution-purpose'] === 'cil-administration-costs') {
-            contribution.transactions.forEach(transaction => {
-              if (transaction['contribution-funding-status'] === 'spent') {
-                cil10Spent = parseInt(cil10Spent) + transaction.amount
-              }
-            })
+    cil.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
+        contribution.transactions.forEach(transaction => {
+          const startDate = new Date(transaction['start-date'])
+          if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
+            if (transaction['contribution-funding-status'] === 'received') {
+              cil10Received = parseFloat(cil10Received) + parseFloat(transaction['amount'])
+            }
+            if (transaction['contribution-funding-status'] === 'spent') {
+              cil10Spent = parseFloat(cil10Spent) + parseFloat(transaction['amount'])
+            }
           }
         })
-      }
+      })
     })
 
-    // 20 / 40 * 100
     json.calculations.push({
       value: {
-        collected: cil10Sum,
+        received: cil10Received,
         spentOnAdmin: cil10Spent,
-        percentage: (cil10Spent / cil10Sum) * 100
+        percentage: (cil10Received !== 0) ? (cil10Spent / cil10Received) * 100 : 0
       },
-      explanation: '',
-      legislation: '',
+      explanation: `The amount of CIL spent on administrative expenses pursuant to regulation 61, and that amount expressed as a percentage of CIL collected in that year in accordance with that regulation`,
+      legislation: 'Schedule 2, Section 1, bullet point g, point iii',
+      type: 'cil'
+    })
+
+    // CIL 3
+    /*
+      NOTE: We can't break down the infrastructure spend, as we don't know what it is.
+      We can split them up into purposes, and then the LPA can split it further.
+    */
+    let cil3Purposes = []
+    // For every CIL agreement in developer-agreement_*.csv
+    cil.forEach(agreement => {
+      // List all contribution purposes (should swap for actual register, but this will include mispelt stuff)
+      agreement.contributions.forEach(contribution => {
+        cil3Purposes.push(contribution['contribution-purpose'])
+      })
+    })
+
+    cil3Purposes = [...new Set(cil3Purposes)].map(key => ({
+      key,
+      amount: 0
+    }))
+
+    cil.forEach(agreement => {
+      agreement.contributions.forEach(contribution => {
+        const isAllocated = contribution.transactions.find(transaction => transaction['contribution-funding-status'] === 'allocated') || false
+        const isSpent = contribution.transactions.find(transaction => transaction['contribution-funding-status'] === 'spent') || false
+
+        // If a contributions is allocated, but not spent
+        if (isAllocated && !isSpent) {
+          const allocatedStartDate = new Date(isAllocated['start-date'])
+
+          // If it was allocated during the reporting year
+          if (allocatedStartDate >= reportingYearStart && allocatedStartDate <= reportingYearEnd) {
+            cil3Purposes.map(purpose => {
+              // Add it together in the purpose key
+              if (purpose.key === contribution['contribution-purpose']) {
+                purpose.amount = parseFloat(purpose.amount) + parseFloat(isAllocated.amount)
+              }
+              return purpose
+            })
+          }
+        }
+      })
+    })
+
+    json.calculations.push({
+      value: cil3Purposes,
+      explanation: `This is CIL that has been allocated but not spent between ${reportingYearStart} and ${reportingYearEnd}, broken down by category`,
+      legislation: 'Schedule 2, Section 1, bullet point h',
       type: 'cil'
     })
 
@@ -268,7 +321,7 @@ const calculations = {
         return row['developer-agreement-classification'].toLowerCase() === 's106'
       }
       return row['developer-agreement-type'].toLowerCase() === 's106'
-    })
+    }).filter(row => !row['end-date'].length)
 
     // S106 1
     let s1061Sum = 0
