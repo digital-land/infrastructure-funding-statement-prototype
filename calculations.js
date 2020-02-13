@@ -42,7 +42,7 @@ const calculations = {
           const startDate = new Date(transaction['start-date'])
           // If the transaction was received within the reporting year
           if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
-            if (transaction['contribution-funding-status'] === 'received') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'received') {
               cil2Sum = parseFloat(cil2Sum) + parseFloat(transaction.amount)
             }
           }
@@ -67,11 +67,11 @@ const calculations = {
           // If the transaction is before the reporting year
           if (startDate < reportingYearStart) {
             // Add all of the received amounts together
-            if (transaction['contribution-funding-status'] === 'received') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'received') {
               cil4Sum = parseFloat(cil4Sum) + parseFloat(transaction['amount'])
             }
             // Subtract all of the allocated amounts
-            if (transaction['contribution-funding-status'] === 'allocated') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'allocated') {
               /* TODO: Check if the allocation removal includes the current year, rather than only BEFORE */
               cil4Sum = parseFloat(cil4Sum) - parseFloat(transaction['amount'])
             }
@@ -95,8 +95,8 @@ const calculations = {
     cil.forEach(agreement => {
       agreement.contributions.forEach(contribution => {
         // If a contributions is both received, and allocated
-        const isReceived = contribution.transactions.find(transaction => transaction['contribution-funding-status'] === 'received') || false
-        const isAllocated = contribution.transactions.find(transaction => transaction['contribution-funding-status'] === 'allocated') || false
+        const isReceived = contribution.transactions.find(transaction => transaction['contribution-funding-status'].toLowerCase() === 'received') || false
+        const isAllocated = contribution.transactions.find(transaction => transaction['contribution-funding-status'].toLowerCase() === 'allocated') || false
 
         if (isReceived && isAllocated) {
           const receivedStartDate = new Date(isReceived['start-date'])
@@ -138,7 +138,7 @@ const calculations = {
           const startDate = new Date(transaction['start-date'])
           if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
             // That has been spent, add it together
-            if (transaction['contribution-funding-status'] === 'spent') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
               cil7Sum = parseFloat(cil7Sum) + parseFloat(transaction.amount)
             }
           }
@@ -164,11 +164,11 @@ const calculations = {
           // If the transaction is before the reporting year
           if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
             // Add all of the received amounts together
-            if (transaction['contribution-funding-status'] === 'allocated') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'allocated') {
               cil6Sum = parseFloat(cil6Sum) + parseFloat(transaction['amount'])
             }
             // Subtract all of the spent amounts
-            if (transaction['contribution-funding-status'] === 'spent') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
               /* TODO: Check if the allocation removal includes the current year, rather than only BEFORE */
               cil6Sum = parseFloat(cil6Sum) - parseFloat(transaction['amount'])
             }
@@ -242,10 +242,10 @@ const calculations = {
         contribution.transactions.forEach(transaction => {
           const startDate = new Date(transaction['start-date'])
           if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
-            if (transaction['contribution-funding-status'] === 'received') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'received') {
               cil10Received = parseFloat(cil10Received) + parseFloat(transaction['amount'])
             }
-            if (transaction['contribution-funding-status'] === 'spent') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
               cil10Spent = parseFloat(cil10Spent) + parseFloat(transaction['amount'])
             }
           }
@@ -285,8 +285,8 @@ const calculations = {
 
     cil.forEach(agreement => {
       agreement.contributions.forEach(contribution => {
-        const isAllocated = contribution.transactions.find(transaction => transaction['contribution-funding-status'] === 'allocated') || false
-        const isSpent = contribution.transactions.find(transaction => transaction['contribution-funding-status'] === 'spent') || false
+        const isAllocated = contribution.transactions.find(transaction => transaction['contribution-funding-status'].toLowerCase() === 'allocated') || false
+        const isSpent = contribution.transactions.find(transaction => transaction['contribution-funding-status'].toLowerCase() === 'spent') || false
 
         // If a contributions is allocated, but not spent
         if (isAllocated && !isSpent) {
@@ -352,7 +352,7 @@ const calculations = {
         contribution.transactions.forEach(transaction => {
           const startDate = new Date(transaction['start-date'])
           if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
-            if (transaction['contribution-funding-status'] === 'received') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'received') {
               s1065Sum = parseFloat(s1065Sum) + parseFloat(transaction.amount)
             }
           }
@@ -376,11 +376,11 @@ const calculations = {
           const startDate = new Date(transaction['start-date'])
           if (startDate < reportingYearStart) {
             // Add together all the money received by the authority prior to this reporting year
-            if (transaction['contribution-funding-status'] === 'received') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'received') {
               s1066Sum = parseFloat(s1066Sum) + parseFloat(transaction.amount)
             }
             // And take away anything allocated
-            if (transaction['contribution-funding-status'] === 'allocated') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'allocated') {
               s1066Sum = parseFloat(s1066Sum) - parseFloat(transaction.amount)
             }
           }
@@ -447,11 +447,11 @@ const calculations = {
           // If the transaction falls within the current reporting year
           if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
             // Add together all of the allocated money
-            if (transaction['contribution-funding-status'] === 'allocated') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'allocated') {
               s1067Sum = parseFloat(s1067Sum) + parseFloat(transaction.amount)
             }
             // And remove all of the spent money
-            if (transaction['contribution-funding-status'] === 'spent') {
+            if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
               s1067Sum = parseFloat(s1067Sum) - parseFloat(transaction.amount)
             }
           }
