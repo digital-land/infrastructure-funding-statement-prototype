@@ -51,6 +51,8 @@ const utilities = {
     // Add filename
     data.filename = data.agreement.find(agreement => agreement.organisation).organisation.replace(':', '-')
 
+    data.organisation = data.agreement.find(agreement => agreement.organisation).organisation
+
     return data
   },
   generateTable (calculations, type) {
@@ -120,7 +122,7 @@ const utilities = {
     doc.addSection({
       children: [
         new Paragraph({
-          text: 'Infrastructure Funding Statement for XYZ',
+          text: `DRAFT - Infrastructure Funding Statement for ${json.organisation}`,
           heading: HeadingLevel.HEADING_1,
           alignment: AlignmentType.CENTER
         }),
