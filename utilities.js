@@ -1,12 +1,9 @@
 const fs = require('fs')
 const csv = require('csvtojson')
-const { Document, Packer, Paragraph, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType, TableLayoutType } = require('docx')
+const { Document, Packer, Paragraph, HeadingLevel, Table, TableRow, TableCell, AlignmentType, TableLayoutType } = require('docx')
 
 const utilities = {
   intToMoney (int) {
-    if (isNaN(parseFloat(int))) {
-      return JSON.stringify(int, null, 4)
-    }
     return `£${parseFloat(int).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`
   },
   async parseCsvs (options) {
@@ -28,7 +25,7 @@ const utilities = {
   },
   groupCsvs (data) {
     data.grouped = data.agreement.map(agreementRow => {
-      agreementRow.contributions = data.contributions.filter(contributionRow => agreementRow['developer-agreement'] === contributionRow['developer-agreement']).map(function (contribution) {
+      agreementRow.contributions = data.contributions.filter(contributionRow => agreementRow['developer-agreement'] === contributionRow['developer-agreement']).map(contribution => {
         // Give a contribution amount, units a value of 0 if it's empty
         contribution.amount = contribution.amount.length ? contribution.amount : 0
         contribution.units = contribution.units.length ? contribution.units : 0
@@ -36,7 +33,7 @@ const utilities = {
       })
 
       agreementRow.contributions.map(contributionRow => {
-        contributionRow.transactions = data.transactions.filter(transactionRow => contributionRow['developer-agreement-contribution'] === transactionRow['developer-agreement-contribution']).map(function (transaction) {
+        contributionRow.transactions = data.transactions.filter(transactionRow => contributionRow['developer-agreement-contribution'] === transactionRow['developer-agreement-contribution']).map(transaction => {
           // Give a transaction amount, units a value of 0 if it's empty
           transaction.amount = transaction.amount.length ? transaction.amount : 0
           transaction.units = transaction.units.length ? transaction.units : 0
@@ -57,48 +54,64 @@ const utilities = {
     return data
   },
   generateTable (calculations, type) {
-    const heading = [new TableRow({
-      tableHeader: true,
-      children: [
-        new TableCell({
-          children: [new Paragraph('Value')],
-          size: 33,
-          type: WidthType.PERCENTAGE
-        }),
-        new TableCell({
-          children: [new Paragraph('Explanation')],
-          size: 33,
-          type: WidthType.PERCENTAGE
-        }),
-        new TableCell({
-          children: [new Paragraph('Legislation')],
-          size: 33,
-          type: WidthType.PERCENTAGE
-        })
-      ]
-    })]
+    const rows = [
+      new TableRow({
+        tableHeader: true,
+        children: [
+          new TableCell({
+            children: [new Paragraph('Value')]
+          }),
+          new TableCell({
+            children: [new Paragraph('Explanation')]
+          }),
+          new TableCell({
+            children: [new Paragraph('Legislation')]
+          })
+        ]
+      })
+    ].concat.apply([], (
+      calculations.filter(item => item.type === type).map(calculation => {
+        if (isNaN(parseFloat(calculation.value))) {
+          return new TableRow({
+            children: [
+              new TableCell({
+                children: calculation.value.map(value => {
+                  let amount = Object.keys(value).includes('amount') ? utilities.intToMoney(value.amount) : `${value.units} units`
+                  if (value.key === 'percentage') {
+                    amount = `${value.amount}%`
+                  }
+                  return new Paragraph(`${value.key}: ${amount}`)
+                })
+              }),
+              new TableCell({
+                children: [new Paragraph(calculation.explanation)]
+              }),
+              new TableCell({
+                children: [new Paragraph(calculation.legislation)]
+              })
+            ]
+          })
+        }
 
-    const rows = calculations.filter(item => item.type === type).map(calculation => new TableRow({
-      children: [
-        new TableCell({
-          children: [new Paragraph(utilities.intToMoney(calculation.value))]
-        }),
-        new TableCell({
-          children: [new Paragraph(calculation.explanation)]
-        }),
-        new TableCell({
-          children: [new Paragraph(calculation.legislation)]
+        return new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph(utilities.intToMoney(calculation.value))]
+            }),
+            new TableCell({
+              children: [new Paragraph(calculation.explanation)]
+            }),
+            new TableCell({
+              children: [new Paragraph(calculation.legislation)]
+            })
+          ]
         })
-      ]
-    }))
+      })
+    ))
 
     return new Table({
-      width: {
-        size: 4535,
-        type: WidthType.DXA
-      },
-      layout: TableLayoutType.FIXED,
-      rows: heading.concat(rows)
+      layout: TableLayoutType.AUTOFIT,
+      rows
     })
   },
   writeFile (json) {

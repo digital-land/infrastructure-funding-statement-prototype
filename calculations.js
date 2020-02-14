@@ -118,10 +118,16 @@ const calculations = {
     })
 
     json.calculations.push({
-      value: {
-        received: cil5Received,
-        allocated: cil5Allocated
-      },
+      value: [
+        {
+          key: 'received',
+          amount: cil5Received
+        },
+        {
+          key: 'allocated',
+          amount: cil5Allocated
+        }
+      ],
       explanation: `This is the amount of CIL received before ${reportingYearStart}, and how much of that was allocated between ${reportingYearStart} and ${reportingYearEnd}.`,
       legislation: 'Schedule 2, Section 1, bullet point d',
       type: 'cil'
@@ -254,11 +260,20 @@ const calculations = {
     })
 
     json.calculations.push({
-      value: {
-        received: cil10Received,
-        spentOnAdmin: cil10Spent,
-        percentage: (cil10Received !== 0) ? (cil10Spent / cil10Received) * 100 : 0
-      },
+      value: [
+        {
+          key: 'received',
+          amount: cil10Received
+        },
+        {
+          key: 'spent-on-cil-administration',
+          amount: cil10Spent
+        },
+        {
+          key: 'percentage',
+          amount: (cil10Received !== 0) ? (cil10Spent / cil10Received) * 100 : 0
+        }
+      ],
       explanation: `The amount of CIL spent on administrative expenses pursuant to regulation 61, and that amount expressed as a percentage of CIL collected in that year in accordance with that regulation`,
       legislation: 'Schedule 2, Section 1, bullet point g, point iii',
       type: 'cil'
@@ -587,7 +602,7 @@ const calculations = {
       "the total amount of money (received under any planning obligations) during any year
       which was retained at the end of the reported year"
     */
-    var s1069Sum = 0
+    let s1069Sum = 0
     // For every S106 agreement in developer-agreement_*.csv
     s106.forEach(agreement => {
       agreement.contributions.forEach(contribution => {
