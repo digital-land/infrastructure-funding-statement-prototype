@@ -141,7 +141,8 @@ const utilities = {
 
     // Create and write the docx file
     return Packer.toBuffer(doc).then((buffer) => {
-      fs.writeFileSync(`${json.filename.toLowerCase()}.docx`, buffer)
+      fs.writeFileSync(`./outputs/${json.filename.toLowerCase()}.docx`, buffer)
+      return `./outputs/${json.filename.toLowerCase()}.docx`
     })
   }
 }
