@@ -15,14 +15,15 @@ const calculations = {
 
     // For every CIL agreement in developer-agreeement_*.csv
     cil.forEach(agreement => {
-      const startDate = new Date(agreement['start-date'])
-      // If the agreement is within the current reporting year
-      if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
-        agreement.contributions.forEach(contribution => {
+      agreement.contributions.forEach(contribution => {
+        const startDate = new Date(contribution['start-date'])
+        // If the agreement is within the current reporting year
+        if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
           // Add the agreement contribution amounts
+          console.log('+', contribution.amount)
           cil1Sum = parseFloat(cil1Sum) + parseFloat(contribution.amount)
-        })
-      }
+        }
+      })
     })
 
     json.calculations.push({
@@ -175,7 +176,7 @@ const calculations = {
             }
             // Subtract all of the spent amounts
             if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
-              /* TODO: Check if the allocation removal includes the current year, rather than only BEFORE */
+              /* TODO: Check if the spent removal includes the current year, rather than only BEFORE */
               cil6Sum = parseFloat(cil6Sum) - parseFloat(transaction['amount'])
             }
           }
@@ -251,8 +252,10 @@ const calculations = {
             if (transaction['contribution-funding-status'].toLowerCase() === 'received') {
               cil10Received = parseFloat(cil10Received) + parseFloat(transaction['amount'])
             }
-            if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
-              cil10Spent = parseFloat(cil10Spent) + parseFloat(transaction['amount'])
+            if (contribution['contribution-purpose'] === 'cil-administration-costs') {
+              if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
+                cil10Spent = parseFloat(cil10Spent) + parseFloat(transaction['amount'])
+              }
             }
           }
         })
@@ -394,10 +397,10 @@ const calculations = {
             if (transaction['contribution-funding-status'].toLowerCase() === 'received') {
               s1066Sum = parseFloat(s1066Sum) + parseFloat(transaction.amount)
             }
-            // And take away anything allocated
-            if (transaction['contribution-funding-status'].toLowerCase() === 'allocated') {
-              s1066Sum = parseFloat(s1066Sum) - parseFloat(transaction.amount)
-            }
+          }
+          // And take away anything allocated
+          if (transaction['contribution-funding-status'].toLowerCase() === 'allocated') {
+            s1066Sum = parseFloat(s1066Sum) - parseFloat(transaction.amount)
           }
         })
       })
@@ -491,6 +494,11 @@ const calculations = {
         contribution.transactions.forEach(transaction => {
           // If it's been spent
           if (transaction['contribution-funding-status'].toLowerCase() === 'spent') {
+            // Add it together
+            s10610Sum = parseFloat(s10610Sum) + parseFloat(transaction['amount'])
+          }
+          // Or if it's been transferred
+          if (transaction['contribution-funding-status'].toLowerCase() === 'transferred') {
             // Add it together
             s10610Sum = parseFloat(s10610Sum) + parseFloat(transaction['amount'])
           }
