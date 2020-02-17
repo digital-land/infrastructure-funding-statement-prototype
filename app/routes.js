@@ -23,4 +23,9 @@ router.post('/generate', dcUploads, (req, res, next) => {
   })
 })
 
+router.get('/outputs/:filename', (req, res, next) => {
+  const file = './outputs/' + req.params.filename
+  return res.download(file)
+})
+
 module.exports = router
