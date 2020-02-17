@@ -2,6 +2,7 @@
 node_modules/
 examples/offline
 uploads/
+outputs/
 
 # Prototype Kit
 # ignore tracking usage data config - we want a different one for each user
