@@ -20,7 +20,6 @@ const calculations = {
         // If the agreement is within the current reporting year
         if (startDate >= reportingYearStart && startDate <= reportingYearEnd) {
           // Add the agreement contribution amounts
-          console.log('+', contribution.amount)
           cil1Sum = parseFloat(cil1Sum) + parseFloat(contribution.amount)
         }
       })
