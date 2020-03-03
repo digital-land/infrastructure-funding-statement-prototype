@@ -61,13 +61,13 @@ const utilities = {
         tableHeader: true,
         children: [
           new TableCell({
-            children: [new Paragraph('Value')]
+            children: [new Paragraph({ text: 'Value' })]
           }),
           new TableCell({
-            children: [new Paragraph('Explanation')]
+            children: [new Paragraph({ text: 'Explanation' })]
           }),
           new TableCell({
-            children: [new Paragraph('Legislation')]
+            children: [new Paragraph({ text: 'Legislation' })]
           })
         ]
       })
@@ -82,14 +82,14 @@ const utilities = {
                   if (value.key === 'percentage') {
                     amount = `${value.amount}%`
                   }
-                  return new Paragraph(`${value.key}: ${amount}`)
+                  return new Paragraph({ text: `${value.key}: ${amount}` })
                 })
               }),
               new TableCell({
-                children: [new Paragraph(calculation.explanation)]
+                children: [new Paragraph({ text: calculation.explanation })]
               }),
               new TableCell({
-                children: [new Paragraph(calculation.legislation)]
+                children: [new Paragraph({ text: calculation.legislation })]
               })
             ]
           })
@@ -98,13 +98,13 @@ const utilities = {
         return new TableRow({
           children: [
             new TableCell({
-              children: [new Paragraph(utilities.intToMoney(calculation.value))]
+              children: [new Paragraph({ text: utilities.intToMoney(calculation.value) })]
             }),
             new TableCell({
-              children: [new Paragraph(calculation.explanation)]
+              children: [new Paragraph({ text: calculation.explanation })]
             }),
             new TableCell({
-              children: [new Paragraph(calculation.legislation)]
+              children: [new Paragraph({ text: calculation.legislation })]
             })
           ]
         })
@@ -123,25 +123,26 @@ const utilities = {
       children: [
         new Paragraph({
           text: `DRAFT - Infrastructure Funding Statement for ${json.organisation}`,
-          heading: HeadingLevel.HEADING_1,
+          heading: HeadingLevel.TITLE,
           alignment: AlignmentType.CENTER
         }),
         new Paragraph({
-          text: 'Section 106 calculations',
-          heading: HeadingLevel.HEADING_2
-        }),
-        utilities.generateTable(json.calculations, 's106'),
-        new Paragraph({
           text: 'Community Infrastructure Levy calculations',
-          heading: HeadingLevel.HEADING_2
+          heading: HeadingLevel.HEADING_1
         }),
-        utilities.generateTable(json.calculations, 'cil')
+        utilities.generateTable(json.calculations, 'cil'),
+        new Paragraph({
+          text: 'Section 106 calculations',
+          heading: HeadingLevel.HEADING_1
+        }),
+        utilities.generateTable(json.calculations, 's106')
       ]
     })
 
     // Create and write the docx file
     return Packer.toBuffer(doc).then((buffer) => {
-      fs.writeFileSync(`${json.filename.toLowerCase()}.docx`, buffer)
+      fs.writeFileSync(`./outputs/${json.filename.toLowerCase()}.docx`, buffer)
+      return `./outputs/${json.filename.toLowerCase()}.docx`
     })
   }
 }
